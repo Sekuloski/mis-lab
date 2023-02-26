@@ -4,9 +4,11 @@ import 'models/question.dart';
 import 'widget/answer_button.dart';
 import 'widget/clothing_question.dart';
 
-void main() => runApp(MyApp());
+void main() => runApp(const MyApp());
 
 class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
   @override
   State<StatefulWidget> createState() {
     return _MyAppState();
