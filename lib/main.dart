@@ -1,20 +1,81 @@
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(MyApp());
+import 'models/question.dart';
+import 'widget/answer_button.dart';
+import 'widget/clothing_question.dart';
+
+void main() => runApp(MyApp());
+
+class MyApp extends StatefulWidget {
+  @override
+  State<StatefulWidget> createState() {
+    return _MyAppState();
+  }
 }
 
-class MyApp extends StatelessWidget {
+class _MyAppState extends State<MyApp> {
+  void _iWasTapped() {
+    setState(() {
+      if (_questionIndex < questions.length - 1) {
+        _questionIndex += 1;
+      }
+    });
+    print('I was tapped');
+  }
+
+  var questions = [
+    Question(
+      questionText: "Select gender",
+      answers: [
+        'Male',
+        'Female',
+      ],
+    ),
+    Question(
+      questionText: "Select size",
+      answers: [
+        'S',
+        'M',
+        'L',
+      ],
+    ),
+    Question(
+      questionText: "Select clothing type",
+      answers: [
+        'Shirt',
+        'Pants',
+        'Trousers',
+      ],
+    ),
+    Question(
+      questionText: "Select colors",
+      answers: [
+        'White',
+        'Black',
+        'Blue',
+        'Green',
+        'Any',
+      ],
+    ),
+  ];
+  var _questionIndex = 0;
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        home: Scaffold(
-      appBar: AppBar(
-        title: Text('191263 Bojan Sekuloski'),
+      title: "Lab 02",
+      home: Scaffold(
+        appBar: AppBar(
+          title: const Text("Lab 02"),
+        ),
+        body: Column(
+          children: [
+            ClothingQuestion(questions[_questionIndex].questionText),
+            ...(questions[_questionIndex].answers).map((answer) {
+              return AnswerButton(_iWasTapped, answer);
+            }),
+          ],
+        ),
       ),
-      body: Container(
-        color: Colors.blue[900],
-      ),
-    ));
+    );
   }
 }
