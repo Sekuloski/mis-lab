@@ -1,41 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 // import './student.dart';
 
-void main() => runApp(const MyApp());
+final kToday = DateTime.now();
+final kFirstDay = DateTime(kToday.year, kToday.month - 3, kToday.day);
+final kLastDay = DateTime(kToday.year, kToday.month + 3, kToday.day);
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+void main() => runApp(
+  MaterialApp(
       title: 'Midterms and Exams',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: MyHomePage(
+      home: const MyHomePage(
         title: 'Midterms and Exams',
-        names: [],
-        dates: [],
-        times: [],
       ),
-    );
-  }
+    )
+);
+
+class User {
+  final String username;
+  final List<String> names = [];
+  final List<String> dates = [];
+  final List<String> times = [];
+
+  User(this.username);
+}
+
+class Exam {
+  final String name;
+  final DateTime date;
+  final String time;
+
+  Exam(this.name, this.date, this.time);
 }
 
 class MyHomePage extends StatefulWidget {
   final String title;
-  final List<String> names;
-  final List<String> dates;
-  final List<String> times;
+
   const MyHomePage(
-      {super.key,
-      required this.title,
-      required this.names,
-      required this.dates,
-      required this.times});
+      {
+        super.key,
+        required this.title,
+      });
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -45,6 +54,104 @@ class _MyHomePageState extends State<MyHomePage> {
   final nameController = TextEditingController();
   final dateController = TextEditingController();
   final timeController = TextEditingController();
+  final usernameController = TextEditingController();
+  
+  CalendarFormat _calendarFormat = CalendarFormat.week;
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _selectedDay;
+  late final ValueNotifier<List<Exam>> _selectedEvents;
+  
+  final List<User> users = [User('Bojan')];
+  final Map<String, List<Exam>> userToExam = {'Bojan': []};
+  String currentUser = 'Bojan';
+  int userCount = 1;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _selectedDay = _focusedDay;
+    _selectedEvents = ValueNotifier(_getEventsForDay(_selectedDay!));
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    dateController.dispose();
+    timeController.dispose();
+    usernameController.dispose();
+    super.dispose();
+  }
+
+  void _login()
+  {
+    setState(() {
+      currentUser = usernameController.text;
+      if (!userToExam.containsKey(currentUser))
+      {
+        User newUser = User(currentUser);
+        users.add(newUser);
+        userToExam[currentUser] = [];
+      }
+      usernameController.clear();
+    });
+  }
+
+  void _addToList() {
+    String name = nameController.text;
+    String date = dateController.text;
+    String time = timeController.text;
+
+    setState(() {
+      if (name != "" && date != "" && time != ""){
+        Exam newExam = Exam(name,  DateTime.parse(date), time);
+        userToExam[currentUser]?.add(newExam);
+      }
+      
+      nameController.clear();
+      dateController.clear();
+      timeController.clear();
+    });
+  }
+
+  void _removeFromList(int index) {
+    setState(() {
+      userToExam[currentUser]?.removeAt(index);
+      
+      nameController.clear();
+      dateController.clear();
+      timeController.clear();
+    });
+  }
+
+  List<Exam> _getEventsForDay(DateTime day) {
+    List<Exam> results = [];
+    for (Exam exam in userToExam[currentUser] ?? [])
+    {
+      if(day.year == exam.date.year)
+      {
+        if(day.month == exam.date.month)
+        {
+          if(day.day == exam.date.day)
+          {
+            results.add(exam);
+          }
+        }
+      }
+    }
+    return results;
+  }
+
+  void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
+    if (!isSameDay(_selectedDay, selectedDay)) {
+      setState(() {
+        _selectedDay = selectedDay;
+        _focusedDay = focusedDay;
+      });
+
+      _selectedEvents.value = _getEventsForDay(selectedDay);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,19 +159,12 @@ class _MyHomePageState extends State<MyHomePage> {
         appBar: AppBar(
           // The title text which will be shown on the action bar
           title: Text(widget.title),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.add_a_photo),
-              onPressed: () => {
-                _addToList(),
-              },
-            ),
-          ],
         ),
         body: Column(children: [
+          Text("Logged in as: $currentUser"),
           Expanded(
               child: ListView.builder(
-                  itemCount: widget.names.length,
+                  itemCount: _getEventsForDay(_selectedDay ?? DateTime.now()).length,
                   itemBuilder: (contx, index) {
                     return Card(
                         elevation: 2,
@@ -76,29 +176,63 @@ class _MyHomePageState extends State<MyHomePage> {
                                   margin: const EdgeInsets.all(10),
                                   padding: const EdgeInsets.all(10),
                                   child: Column(children: [
-                                    Text(widget.names[index],
-                                        style: TextStyle(
-                                            fontSize: 20,
-                                            color: Theme.of(contx)
-                                                .primaryColorLight,
-                                            fontWeight: FontWeight.bold)),
+                                    Row(children: [
+                                      Center(
+                                        child:
+                                          Text(_getEventsForDay(_selectedDay ?? DateTime.now()).elementAt(index).name,
+                                            style: TextStyle(
+                                                fontSize: 20,
+                                                color: Theme.of(contx)
+                                                    .primaryColorLight,
+                                                fontWeight: FontWeight.bold)),
+                                      ),
+                                      Padding(padding: const EdgeInsets.only(left: 100),
+                                      child: 
+                                        IconButton(
+                                          icon: const Icon(Icons.remove),
+                                          onPressed: () => {
+                                            _removeFromList(index)
+                                          },
+                                        ))
+                                    ]),
                                     Text(
-                                        "${widget.dates[index]} - ${widget.times[index]}",
-                                        style: TextStyle(
+                                        "${DateFormat('yyyy-MM-dd').format(_getEventsForDay(_selectedDay ?? DateTime.now()).elementAt(index).date)} - ${_getEventsForDay(_selectedDay ?? DateTime.now()).elementAt(index).time}",
+                                        style: const TextStyle(
                                             fontSize: 20, color: Colors.grey)),
                                   ]))
                             ]));
                   })),
+          TableCalendar<Exam>(
+            firstDay: kFirstDay,
+            lastDay: kLastDay,
+            focusedDay: _focusedDay,
+            calendarFormat: _calendarFormat,
+            eventLoader: _getEventsForDay,
+            onDaySelected: _onDaySelected,
+            selectedDayPredicate: (day) {
+              return isSameDay(_selectedDay, day);
+            },
+            
+            onFormatChanged: (format) {
+              if (_calendarFormat != format) {
+                setState(() {
+                  _calendarFormat = format;
+                });
+              }
+            },
+            onPageChanged: (focusedDay) {
+              _focusedDay = focusedDay;
+            },
+          ),
           TextField(
             controller: nameController,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               hintText: 'Enter exam name',
             ),
           ),
-          SizedBox(height: 16.0),
           TextField(
               controller: dateController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: 'Enter a date',
               ),
               onTap: () async {
@@ -109,11 +243,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     lastDate: DateTime(2100));
 
                 if (pickedDate != null) {
-                  print(
-                      pickedDate); //pickedDate output format => 2021-03-10 00:00:00.000
                   String formattedDate =
                       DateFormat('yyyy-MM-dd').format(pickedDate);
-                  print(formattedDate);
                   setState(() {
                     dateController.text = formattedDate;
                   });
@@ -121,7 +252,7 @@ class _MyHomePageState extends State<MyHomePage> {
               }),
           TextField(
               controller: timeController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: 'Enter time',
               ),
               onTap: () async {
@@ -132,32 +263,33 @@ class _MyHomePageState extends State<MyHomePage> {
                 );
                 setState(() {
                   timeController.text =
-                      "${pickedTime?.hour} ${pickedTime?.minute}";
+                      "${pickedTime?.hour.toString().padLeft(2, '0')}:${pickedTime?.minute.toString().padLeft(2, '0')}";
                 });
-              })
-        ]));
-  }
-
-  @override
-  void dispose() {
-    nameController.dispose();
-    dateController.dispose();
-    timeController.dispose();
-    super.dispose();
-  }
-
-  void _addToList() {
-    String name = nameController.text;
-    String date = dateController.text;
-    String time = timeController.text;
-
-    setState(() {
-      widget.names.add(name);
-      widget.dates.add(date);
-      widget.times.add(time);
-      nameController.clear();
-      dateController.clear();
-      timeController.clear();
-    });
+              }),
+          Padding(
+            padding: const EdgeInsets.only(top: 10.0),
+            child: TextButton(
+                onPressed: () => {
+                  _addToList(),
+                },
+                child: const Text("Add Exam"),
+            ),
+          ),
+          const SizedBox(
+            height: 40,
+          ),
+          TextField(
+            controller: usernameController,
+            decoration: const InputDecoration(
+            hintText: 'Enter username',
+            )
+          ),
+          TextButton(onPressed: () {
+            _login();
+          }, 
+            child: const Text('Change User'))
+        ],
+      )
+    );
   }
 }
