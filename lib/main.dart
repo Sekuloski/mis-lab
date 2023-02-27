@@ -132,7 +132,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 );
                 setState(() {
                   timeController.text =
-                      "${pickedTime?.hour} ${pickedTime?.minute}";
+                      "${pickedTime?.hour.toString().padLeft(2, '0')}:${pickedTime?.minute.toString().padLeft(2, '0')}";
                 });
               })
         ]));
